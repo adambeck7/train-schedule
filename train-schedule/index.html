@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Train Schedule</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+
+  <link rel="stylesheet" type="text/css" media="screen" href="style.css" />
+
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    crossorigin="anonymous"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/5.2.0/firebase.js"></script>
+
+
+  <!-- <script src="https://www.gstatic.com/firebasejs/5.2.0/firebase.js"></script> -->
+
+
+  <script src="moment.js">
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="jumbotron">
+      <h1 class="display">Train Schedule</h1>
+    </div>
+    <form id="myform">
+      <div class=" form-group">
+        <h5 class="form-title">Add a Train</h5>
+        <label for="name">Train Name</label>
+        <input type="text" class="form-control" id="train-name" placeholder="Zephyr">
+      </div>
+      <div class="form-group">
+        <label for="role">Destination</label>
+        <input type="text" class="form-control" id="destination" placeholder="Denver">
+      </div>
+      <div class="form-group">
+        <label for="date">First Train Time (HH:mm - military time)</label>
+        <input type="text" class="form-control" id="time" placeholder="01:20">
+      </div>
+      <div class="form-group">
+        <label for="rate">Frequency</label>
+        <input type="text" class="form-control" id="frequency" placeholder="30">
+        <br>
+        <button id="submitTime" type="button" class="btn btn-primary btn-md">Submit</button>
+      </div>
+    </form>
+    <div class="container">
+      <h5>Current Employees</h5>
+      <hr>
+      <table class="table" id="table">
+        <thead>
+          <tr>
+            <th>Train Name</th>
+            <th>Destination</th>
+            <th>Start Time</th>
+            <th>Frequency</th>
+            <th>Next Arrival</th>
+            <th>Minutes Away</th>
+          </tr>
+        </thead>
+      </table>
+
+    </div>
+    <script>
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyAoOWuIYQQqzG-ORqKeYMR2KA3rQ6Cnvtg",
+        authDomain: "du-train-schedule.firebaseapp.com",
+        databaseURL: "https://du-train-schedule.firebaseio.com",
+        projectId: "du-train-schedule",
+        storageBucket: "du-train-schedule.appspot.com",
+        messagingSenderId: "766242912016"
+      };
+      closeButton = $("<button>").attr({
+        class: "close",
+        type: "button",
+        'aria-label': "close"
+      });
+
+      firebase.initializeApp(config);
+
+      var database = firebase.database();
+      $("#table").on('change', '*', function () {
+        ("#final").append(closeButton);
+      })
+
+      $("#submitTime").on("click", function () {
+        // event.preventDefault();
+        var trainNameVal = $("#train-name").val().trim();
+        var destinationVal = $("#destination").val().trim();
+        var timeVal = $("#time").val().trim();
+        var frequencyStr = $("#frequency").val().trim();
+        var frequencyInt = parseInt(frequencyStr);
+        console.log(frequencyInt);
+        database.ref().push({
+          name: trainNameVal,
+          destination: destinationVal,
+          time: timeVal,
+          rate: frequencyInt,
+        });
+      });
+
+      database.ref().on("child_added",
+        function (childSnapshot) {
+          // database.ref().on("child_added", function (childSnapshot) {
+          var newTrain = childSnapshot.val().name;
+          console.log("1", newTrain);
+          var newLocation = childSnapshot.val().destination;
+          console.log("2", newLocation);
+          var newFirstTrain = childSnapshot.val().time;
+          console.log("3", newFirstTrain);
+          var newFreq = childSnapshot.val().rate;
+          console.log("4", newFreq);
+          //first time (pushed back 1 year to make sure it comes before the current time)
+          var startTimeConverted = moment(newFirstTrain, "hh:mm").subtract(1, "years");
+          console.log("5", startTimeConverted);
+          //current time
+          var currentTime = moment();
+          console.log("6", currentTime);
+          //difference between the times
+          var diffTime = moment().diff(startTimeConverted, "minutes");
+          console.log("7", diffTime);
+          //time apart (remainder)
+          var tRemainder = diffTime % newFreq;
+          console.log("8", tRemainder);
+          //minutes until train
+          var tMinutesTillTrain = newFreq - tRemainder;
+          console.log("9", tMinutesTillTrain);
+          //next train
+          var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+          console.log("10", nextTrain);
+          var catchTrain = moment(nextTrain).format("HH:mm");
+          console.log("11", catchTrain);
+
+          // <
+          // button type = "button"
+          // class = "close"
+          // aria - label = "Close" >
+          //   <
+          //   span aria - hidden = "true" > & times; < /span> <
+          // /button>
+
+          var newRow = $("<tr>");
+
+          $(newRow).html("<td>" + childSnapshot.val().name + "</td><td>" + childSnapshot.val()
+            .destination +
+            "</td><td>" + childSnapshot.val().time + "</td><td>" + childSnapshot.val().rate +
+            " min </td><td>" + catchTrain + "</td><td id='final'>" + tMinutesTillTrain + "</td>")
+
+          $("#table").append(newRow);
+
+        });
+    </script>
+</body>
+
+</html>

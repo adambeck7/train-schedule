@@ -1,0 +1,10 @@
+.form-title {
+    color: black;
+    padding: .2em;
+}
+
+.jumbotron {
+    color: white;
+    background-color: black !important;
+    text-align: center;
+}
